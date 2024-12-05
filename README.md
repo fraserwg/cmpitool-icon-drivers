@@ -1,5 +1,4 @@
 # cmpitool-icon-drivers
-
 This repository contains code used for preparing [ICON earth system model](https://www.icon-model.org) data for use with the [CMPITool](https://github.com/JanStreffing/cmpitool/tree/master). CMPITool is a tool used for evaluating the performance of climate models. It expects input data to be in a certain format which is different to the format raw dat from the ICON model is output. The scripts in this repository will process raw ICON outputs into the files required by CMPITool
 
 ## Useage

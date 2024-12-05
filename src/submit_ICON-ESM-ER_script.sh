@@ -4,7 +4,7 @@
 #SBATCH --nodes=1
 #SBATCH --mem=256G
 #SBATCH --exclusive 
-#SBATCH --time=06:00:00
+#SBATCH --time=08:00:00
 #SBATCH --account=bk1377
 #SBATCH --output=noncmore_preprocess_ICON-ESM-ER.%j.out
 
@@ -20,6 +20,7 @@ module load parallel
 # Parallel processing options
 export PROCS=8  # Number of openmp threads for cdo to use
 export BATCH_SIZE=6  # Number of cdo jobs to run at a time
+# hint: PROCS * BATCH_SIZE should be less than the number of processors on your machine.
 
 # Input data options
 export model_dir="/work/bm1344/k203123/experiments/erc2002/run*"  # directory models outputs can be found (may use 'glob' like syntax)
@@ -38,11 +39,11 @@ export atm_2d_prefix="erc2002_atm_2d_1mth_mean_"  # Should contain ps, tas, pr, 
 export icon_file_suffix=".nc"
 
 export first_year=1991
-export last_year=1991
+export last_year=2020
 
 # Output data options
-export model_name="ICON-ESM-ER"
-export outdir="/work/mh0256/m301014/cmpitool/data/postprocessing/icon-esm-er-time"
-export tmpdir="/work/mh0256/m301014/cmpitool/data/temp/icon-esm-er-time"
+export model_name="ICON-ESM-ER-control"
+export outdir="/work/mh0256/m301014/cmpitool-icon-drivers/data/processed/icon-esm-er-control"
+export tmpdir="/work/mh0256/m301014/cmpitool-icon-drivers/data/temp/icon-esm-er-control"
 
 ./noncmore_preprocess_ICON-ESM-ER.sh

@@ -94,16 +94,53 @@ done
 last_year_p1=$((last_year + 1))
 DATE_STAMPS+=( "${last_year_p1}01??T??????Z" )
 
-# Remove the first element and loop to find the files
-for date_stamp in "${DATE_STAMPS[@]:1}";
-do
-    echo "Searching for files with datestamp pattern: ${date_stamp}"
-    OCE_ML_FILES+=( $(find ${model_dir}/${oce_ml_prefix}${date_stamp}${icon_file_suffix}) )
-    OCE_2D_FILES+=( $(find ${model_dir}/${oce_2d_prefix}${date_stamp}${icon_file_suffix}) )
-    ATM_ML_FILES+=( $(find ${model_dir}/${atm_ml_prefix}${date_stamp}${icon_file_suffix}) )
-    ATM_2D_FILES+=( $(find ${model_dir}/${atm_2d_prefix}${date_stamp}${icon_file_suffix}) )
-done
+# Create temporary files to hold results
+OCE_ML_TEMP=$(mktemp)
+OCE_2D_TEMP=$(mktemp)
+ATM_ML_TEMP=$(mktemp)
+ATM_2D_TEMP=$(mktemp)
 
+# Remove the first element and loop to find the files
+for date_stamp in "${DATE_STAMPS[@]:1}"; do
+    echo "Searching for files with datestamp pattern: ${date_stamp}"
+
+    # Run find commands concurrently, outputting to temporary files
+    {
+        find ${model_dir}/${oce_ml_prefix}${date_stamp}${icon_file_suffix} ! -name "*.bck*" >> "$OCE_ML_TEMP"
+    } &
+
+    {
+        find ${model_dir}/${oce_2d_prefix}${date_stamp}${icon_file_suffix} ! -name "*.bck*" >> "$OCE_2D_TEMP"
+    } &
+
+    {
+        find ${model_dir}/${atm_ml_prefix}${date_stamp}${icon_file_suffix} ! -name "*.bck*" >> "$ATM_ML_TEMP"
+    } &
+
+    {
+        find ${model_dir}/${atm_2d_prefix}${date_stamp}${icon_file_suffix} ! -name "*.bck*" >> "$ATM_2D_TEMP"
+    } &
+
+    # Wait for all background processes to complete
+    wait
+done
+# Read results from temporary files back into arrays
+mapfile -t OCE_ML_FILES < "$OCE_ML_TEMP"
+mapfile -t OCE_2D_FILES < "$OCE_2D_TEMP"
+mapfile -t ATM_ML_FILES < "$ATM_ML_TEMP"
+mapfile -t ATM_2D_FILES < "$ATM_2D_TEMP"
+
+rm "$OCE_ML_TEMP" "$OCE_2D_TEMP" "$ATM_ML_TEMP" "$ATM_2D_TEMP"
+
+# for date_stamp in "${DATE_STAMPS[@]:1}";
+# do
+#     echo "Searching for files with datestamp pattern: ${date_stamp}"
+#     OCE_ML_FILES+=( $(find ${model_dir}/${oce_ml_prefix}${date_stamp}${icon_file_suffix}) )
+#     OCE_2D_FILES+=( $(find ${model_dir}/${oce_2d_prefix}${date_stamp}${icon_file_suffix}) )
+#     ATM_ML_FILES+=( $(find ${model_dir}/${atm_ml_prefix}${date_stamp}${icon_file_suffix}) )
+#     ATM_2D_FILES+=( $(find ${model_dir}/${atm_2d_prefix}${date_stamp}${icon_file_suffix}) )
+#     wait
+# done
 
 printf "##################################\n"
 printf "# Operate on atm 2D data         #\n"
