@@ -16,7 +16,7 @@ Help()
     echo "#         model_dir       : Directory models outputs can be found (may use    #"
     echo "#                             'glob' like syntax)                             #"
     echo "#         atm_zg_file     : File containing time-independent geometric height #"
-    echo "#                             of the atmospheric grid (zg)                    #"
+    echo "#                             of the atmospheric grid (z_mc)                    #"
     echo "#         oce_ml_prefix   : Should contain to and so at all model levels      #"
     echo "#         oce_2d_prefix   : Should contain conc, mlotst10, to and ssh on      #"
     echo "#                             surface model level                             #"
@@ -217,13 +217,13 @@ echo "Merging remapped 2D atmospheric data into CMPITool formatted files"
 for var in tas pr clt;
 do
     echo "Files being saved into: ${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_<<season>>.nc"
-    cdo -O -P ${PROCS} -splitseas -yseasmean -shifttime,-1seconds -mergetime "${tmpdir}/${var}.gr2.*.nc" "${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_"
+    cdo -O -P ${PROCS} -splitseas -yseasmean -selyear,${first_year}/${last_year} -shifttime,-1seconds -mergetime "${tmpdir}/${var}.gr2.*.nc" "${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_"
 done
 
 for var in rlut;
 do
     echo "Files being saved into: ${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_<<season>>.nc"
-    cdo -O -P ${PROCS} -splitseas -mulc,-1 -yseasmean -shifttime,-1seconds -mergetime "${tmpdir}/${var}.gr2.*.nc" "${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_"
+    cdo -O -P ${PROCS} -splitseas -mulc,-1 -yseasmean -selyear,${first_year}/${last_year} -shifttime,-1seconds -mergetime "${tmpdir}/${var}.gr2.*.nc" "${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_"
 done
 
 
@@ -276,7 +276,7 @@ atm_ml_processing() {
         if [ ! -e "${out_file}" ];
         then
             echo "Remapped output will be saved to: ${out_file}"
-            cdo -P ${PROCS} -remap,r180x91,"${ATM_2D_WGHTS}" -sellevel,89 -chname,"${var}","${var}as" -selvar,"${var}" "${in_file}" "${out_file}"
+            cdo -P ${PROCS} -remap,r180x91,"${ATM_2D_WGHTS}" -sellevel,90 -chname,"${var}","${var}as" -selvar,"${var}" "${in_file}" "${out_file}"
         else
             echo "  skipping remapping"
         fi
@@ -290,15 +290,15 @@ parallel --jobs $BATCH_SIZE "atm_ml_processing {}" ::: "${ATM_ML_FILES[@]}"
 echo ""
 echo "Merging remapped ML atmospheric data into CMPITool formatted files"
 echo "Files being saved into: ${outdir}/ua_${model_name}_${first_year}01-${last_year}12_300hPa_<<season>>.nc"
-cdo -O -P ${PROCS} -splitseas -yseasmean -shifttime,-1seconds -mergetime "${tmpdir}/ua.gr2.*.nc" "${outdir}/ua_${model_name}_${first_year}01-${last_year}12_300hPa_"
+cdo -O -P ${PROCS} -splitseas -yseasmean -selyear,${first_year}/${last_year} -shifttime,-1seconds -mergetime "${tmpdir}/ua.gr2.*.nc" "${outdir}/ua_${model_name}_${first_year}01-${last_year}12_300hPa_"
 
 echo "Files being saved into: ${outdir}/zg_${model_name}_${first_year}01-${last_year}12_500hPa_<<season>>.nc"
-cdo -O -P ${PROCS} -splitseas -yseasmean -shifttime,-1seconds -mergetime "${tmpdir}/zg.gr2.*.nc" "${outdir}/zg_${model_name}_${first_year}01-${last_year}12_500hPa_"
+cdo -O -P ${PROCS} -splitseas -yseasmean -selyear,${first_year}/${last_year} -shifttime,-1seconds -mergetime "${tmpdir}/zg.gr2.*.nc" "${outdir}/zg_${model_name}_${first_year}01-${last_year}12_500hPa_"
 
 for var in uas vas;
 do
     echo "Files being saved into: ${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_<<season>>.nc"
-    cdo -O -P ${PROCS} -splitseas -yseasmean -shifttime,-1seconds -mergetime "${tmpdir}/${var}.gr2.*.nc" "${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_"
+    cdo -O -P ${PROCS} -splitseas -yseasmean -selyear,${first_year}/${last_year} -shifttime,-1seconds -mergetime "${tmpdir}/${var}.gr2.*.nc" "${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_"
 done
 
 
@@ -363,7 +363,7 @@ do
     for level in 10 100 1000 4000;
     do
         echo "Files being saved into: ${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_${level}m_<<season>>.nc"
-        cdo -O -P ${PROCS} -splitseas -yseasmean -shifttime,-1seconds "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_${level}m.nc" "${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_${level}m_"
+        cdo -O -P ${PROCS} -splitseas -yseasmean -selyear,${first_year}/${last_year} -shifttime,-1seconds "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_${level}m.nc" "${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_${level}m_"
     done
 done
 
@@ -453,14 +453,14 @@ echo "Merging remapped 2D oceanic data into CMPITool formatted files"
 for var in siconc mlotst;
 do
     echo "Files being saved into: ${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_<<season>>.nc"
-    cdo -O -P ${PROCS} -splitseas -yseasmean  -shifttime,-1seconds -mergetime "${tmpdir}/${var}.gr2.*.nc" "${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_"
+    cdo -O -P ${PROCS} -splitseas -yseasmean -selyear,${first_year}/${last_year}  -shifttime,-1seconds -mergetime "${tmpdir}/${var}.gr2.*.nc" "${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_"
 done
 
 # Separate from above as we calculate the std for these variables.
 for var in zos tos ;
 do
     echo "Files being saved into: ${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_<<season>>.nc"
-    cdo -O -P ${PROCS} -splitseas -yseasstd  -shifttime,-1seconds -mergetime "${tmpdir}/${var}.gr2.*.nc" "${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_"
+    cdo -O -P ${PROCS} -splitseas -yseasstd -selyear,${first_year}/${last_year} -shifttime,-1seconds -mergetime "${tmpdir}/${var}.gr2.*.nc" "${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_"
 done
 
 echo ""
