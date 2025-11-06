@@ -5,7 +5,7 @@
 #SBATCH --mem=256G
 #SBATCH --exclusive 
 #SBATCH --time=08:00:00
-#SBATCH --account=bk1377
+#SBATCH --account=bm1344
 #SBATCH --output=log/noncmore_preprocess_ICON-ESM-dragon.%j.out
 
 # limit stacksize ... adjust to your programs need
@@ -31,7 +31,7 @@ export model_dir="/work/bm1344/k203123/experiments/${exp_name}/run*"  # director
 export model_dir="/work/mh0033/m211054/projects/icon/dragon/feature-xpp-tuning/build_hdint_levante.intel/experiments/hel25213_r3b7-r2b9"
 
 export atm_zg_file="/work/mh0033/m300029/GIT/R2B8_0033_atm_zg_zghalf.nc"  # File containing geometric height of the atmospheric grid (zg)
-export atm_zg_file="None"
+export atm_zg_file="/work/mh1494/m300466/icon-xpp/icon-2025.09.30/build_hdint_ghcpu/experiments/dragon_15nodes_oce200mpi_getvertgrid/dragon_15nodes_oce200mpi_getvertgrid_atm_vertgrid_19500101T000000Z.nc"
 
 
 # Prefixes of the files containing different variables

@@ -253,19 +253,19 @@ atm_ml_processing() {
         echo "  skipping remapping"
     fi
     
-    # echo ""
-    # echo "Remapping: zg (500 hPa)"
-    # zg500_out="${tmpdir}/zg.gr2.${filename}"
-    # check_for_and_remove_incomplete_files "${zg500_out}"
-    # if [ ! -e "${zg500_out}" ];
-    # then
-    #     echo "Remapped output will be saved to: ${zg500_out}"
-    #     # The setmisstoc part here shouldn't strictly be there; however, without it 
-    #     # the remap weights have to be recomputed for every timestep...
-    #     cdo -P "${PROCS}" -remap,r180x91,"${ATM_2D_WGHTS}" -setmisstoc,5500 -selvar,zg -ap2pl,50000 -merge -selvar,zg "${atm_zg_file}" -merge [ -selvar,pres "${in_file}" -selvar,pres_sfc "${sister_file}" ] "${zg500_out}"
-    # else
-    #     echo "  skipping remapping"
-    # fi
+    echo ""
+    echo "Remapping: zg (500 hPa)"
+    zg500_out="${tmpdir}/zg.gr2.${filename}"
+    check_for_and_remove_incomplete_files "${zg500_out}"
+    if [ ! -e "${zg500_out}" ];
+    then
+        echo "Remapped output will be saved to: ${zg500_out}"
+        # The setmisstoc part here shouldn't strictly be there; however, without it 
+        # the remap weights have to be recomputed for every timestep...
+        cdo -P "${PROCS}" -remap,r180x91,"${ATM_2D_WGHTS}" -setmisstoc,5500 -chname,z_mc,zg -selvar,z_mc -ap2pl,50000 -merge -selvar,z_mc "${atm_zg_file}" -merge [ -selvar,pres "${in_file}" -selvar,pres_sfc "${sister_file}" ] "${zg500_out}"
+    else
+        echo "  skipping remapping"
+    fi
 
     for var in u v ;
     do
