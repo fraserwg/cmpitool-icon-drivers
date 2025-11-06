@@ -27,8 +27,9 @@ export model_name="ICON-ESM-dragon"  # Human readable name of the model (used fo
 export exp_name="hel25213_r3b7-r2b9"  # exp_name (used for input)
 
 # Input data options
-export model_dir="/work/bm1344/k203123/experiments/${exp_name}/run*"  # directory models outputs can be found (may use 'glob' like syntax)
 export model_dir="/work/mh0033/m211054/projects/icon/dragon/feature-xpp-tuning/build_hdint_levante.intel/experiments/hel25213_r3b7-r2b9"
+# directory models outputs can be found (may use 'glob' like syntax) e.g.:
+# export model_dir="/work/bm1344/k203123/experiments/${exp_name}/run*" 
 
 # File containing geometric height of the atmospheric grid (z_mc)
 export atm_zg_file="/work/mh1494/m300466/icon-xpp/icon-2025.09.30/build_hdint_ghcpu/experiments/dragon_15nodes_oce200mpi_getvertgrid/dragon_15nodes_oce200mpi_getvertgrid_atm_vertgrid_19500101T000000Z.nc"
