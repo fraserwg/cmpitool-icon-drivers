@@ -56,4 +56,4 @@ model_name_lower=$(echo "$model_name" | tr '[:upper:]' '[:lower:]')
 export outdir="/work/mh0256/m301014/cmpitool-icon-drivers/data/processed/${model_name_lower}"
 export tmpdir="/work/mh0256/m301014/cmpitool-icon-drivers/data/temp/${model_name_lower}"
 
-./noncmore_preprocess_ICON-ESM-dragon.sh
+./_noncmore_preprocess_ICON-ESM-dragon.sh
