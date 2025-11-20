@@ -23,7 +23,7 @@ export BATCH_SIZE=6  # Number of cdo jobs to run at a time
 # hint: PROCS * BATCH_SIZE should be less than the number of processors on your machine.
 
 # Model name options
-export model_name="ICON-ESM-dragon"  # Human readable name of the model (used for output)
+export model_name="ICON-ESM-dragon-test"  # Human readable name of the model (used for output)
 export exp_name="hel25213_r3b7-r2b9"  # exp_name (used for input)
 
 # Input data options
@@ -52,7 +52,8 @@ export ua300hPa_prefix="${exp_name}_atm_3d_ml_"
 export zg500hPa_prefix="${exp_name}_atm_3d_ml_"
 
 export siconc_prefix="${exp_name}_oce_qps_"
-export zos_prefix="ssh/${exp_name}_oce_ssh_"
+# export zos_prefix="ssh/${exp_name}_oce_ssh_"
+export zos_prefix="${exp_name}_oce_kin_"
 export tos_prefix="${exp_name}_oce_qps_"
 export mlotst_prefix="${exp_name}_oce_qps_"
 
@@ -62,7 +63,7 @@ export so_prefix="${exp_name}_oce_qps_"
 export icon_file_suffix=".nc"
 
 # export first_year=1950
-export first_year=1950
+export first_year=1998
 export last_year=1999
 
 # Output data options

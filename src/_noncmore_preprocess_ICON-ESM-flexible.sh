@@ -28,7 +28,7 @@ Help()
     echo "#         zg500hPa_prefix : Should contain pres at all model levels           #"
     echo "#                                                                             #"
     echo "#         siconc_prefix   : Should contain conc                               #"
-    echo "#         zos_prefix      : Should contain daily ssh                          #"
+    echo "#         zos_prefix      : Should contain daily zos                          #"
     echo "#         tos_prefix      : Should contain to on all model levels             #"
     echo "#         mlotst_prefix   : Should contain mlotst                             #"
     echo "#                                                                             #"
@@ -202,7 +202,7 @@ cdo -O -P ${PROCS} -gencon,r180x91 -selvar,conc "${SICONC_FILES[0]}" "${SI_WGHTS
 
 export ZOS_WGHTS="${tmpdir}/ZOS_weights.nc"
 echo "ssh weights will be saved to: ${ZOS_WGHTS}"
-cdo -O -P ${PROCS} -gencon,r180x91 -setctomiss,0 -selvar,ssh "${ZOS_FILES[0]}" "${ZOS_WGHTS}"
+cdo -O -P ${PROCS} -gencon,r180x91 -setctomiss,0 -selvar,zos "${ZOS_FILES[0]}" "${ZOS_WGHTS}"
 
 export OCE_ML_WGHTS="${tmpdir}/ML_weights.nc"
 echo "Weights will be saved to: ${OCE_ML_WGHTS}"
@@ -443,7 +443,7 @@ zos_processing() {
     if [ ! -e "${zos_out}" ];
     then
         echo "Remapped output will be saved to: ${zos_out}"
-        cdo -P ${PROCS} -remap,r180x91,"${ZOS_WGHTS}" -setctomiss,0 -chname,ssh,zos -selvar,ssh "${in_file}" "${zos_out}"
+        cdo -P ${PROCS} -remap,r180x91,"${ZOS_WGHTS}" -setctomiss,0 -chname,ssh,zos -expr,"rhoi=917; rhos=300; rho_ref=1025; rhoicwa=rhoi/rho_ref; rhosnwa=rhos/rho_ref; ssh=zos+(hi*conc*rhoicwa)+(hs*conc*rhosnwa)" "${in_file}" "${zos_out}"
     else
         echo "  skipping remapping"
     fi
@@ -512,23 +512,23 @@ echo "##################################\n"
 echo "# Executing processing functions #\n"
 echo "##################################\n"
 # Use parallel to exexute the initial regridding.
-parallel --jobs $BATCH_SIZE "tas_processing {}" ::: "${TAS_FILES[@]}"
-parallel --jobs $BATCH_SIZE "clt_processing {}" ::: "${CLT_FILES[@]}"
-parallel --jobs $BATCH_SIZE "pr_processing {}" ::: "${PR_FILES[@]}"
-parallel --jobs $BATCH_SIZE "rlut_processing {}" ::: "${RLUT_FILES[@]}"
-parallel --jobs $BATCH_SIZE "uas_processing {}" ::: "${UAS_FILES[@]}"
-parallel --jobs $BATCH_SIZE "vas_processing {}" ::: "${VAS_FILES[@]}"
+# parallel --jobs $BATCH_SIZE "tas_processing {}" ::: "${TAS_FILES[@]}"
+# parallel --jobs $BATCH_SIZE "clt_processing {}" ::: "${CLT_FILES[@]}"
+# parallel --jobs $BATCH_SIZE "pr_processing {}" ::: "${PR_FILES[@]}"
+# parallel --jobs $BATCH_SIZE "rlut_processing {}" ::: "${RLUT_FILES[@]}"
+# parallel --jobs $BATCH_SIZE "uas_processing {}" ::: "${UAS_FILES[@]}"
+# parallel --jobs $BATCH_SIZE "vas_processing {}" ::: "${VAS_FILES[@]}"
 
-parallel --jobs $BATCH_SIZE "ua300hPa_processing {}" ::: "${UA300HPA_FILES[@]}"
-parallel --jobs $BATCH_SIZE "zg500hPa_processing {}" ::: "${ZG500HPA_FILES[@]}"
+# parallel --jobs $BATCH_SIZE "ua300hPa_processing {}" ::: "${UA300HPA_FILES[@]}"
+# parallel --jobs $BATCH_SIZE "zg500hPa_processing {}" ::: "${ZG500HPA_FILES[@]}"
 
-parallel --jobs $BATCH_SIZE "siconc_processing {}" ::: "${SICONC_FILES[@]}"
-parallel --jobs $BATCH_SIZE "mlotst_processing {}" ::: "${MLOTST_FILES[@]}"
-parallel --jobs $BATCH_SIZE "tos_processing {}" ::: "${TOS_FILES[@]}"
+# parallel --jobs $BATCH_SIZE "siconc_processing {}" ::: "${SICONC_FILES[@]}"
+# parallel --jobs $BATCH_SIZE "mlotst_processing {}" ::: "${MLOTST_FILES[@]}"
+# parallel --jobs $BATCH_SIZE "tos_processing {}" ::: "${TOS_FILES[@]}"
 parallel --jobs $BATCH_SIZE "zos_processing {}" ::: "${ZOS_FILES[@]}"
 
-parallel --jobs $BATCH_SIZE "to_processing {}" ::: "${TO_FILES[@]}"
-parallel --jobs $BATCH_SIZE "so_processing {}" ::: "${SO_FILES[@]}"
+# parallel --jobs $BATCH_SIZE "to_processing {}" ::: "${TO_FILES[@]}"
+# parallel --jobs $BATCH_SIZE "so_processing {}" ::: "${SO_FILES[@]}"
 
 
 echo "##################################\n"
