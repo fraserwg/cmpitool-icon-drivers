@@ -73,9 +73,9 @@ check_for_and_remove_incomplete_files() {
 }
 export -f check_for_and_remove_incomplete_files
 
-printf "##################################\n"
-printf "# Construct the data paths       #\n"
-printf "##################################\n"
+echo "##################################\n"
+echo "# Construct the data paths       #\n"
+echo "##################################\n"
 echo "Will search the folder ${model_dir} for raw outputs"
 TAS_FILES=()
 CLT_FILES=()
@@ -168,17 +168,40 @@ rm "$TAS_TEMP" "$CLT_TEMP" "$PR_TEMP" "$RLUT_TEMP" "$UAS_TEMP" "$VAS_TEMP" \
    "$TO_TEMP" "$SO_TEMP"
 
 
-printf "##################################\n"
-printf "# Operate on atm 2D data         #\n"
-printf "##################################\n"
+
+echo "##################################\n"
+echo "# Construct grid weights         #\n"
+echo "##################################\n"
 
 echo "Constructing interpolation weights for 2D atmospheric variables"
-export ATM_2D_WGHTS="${tmpdir}/ATM_2D_weights.nc"
 
+export ATM_2D_WGHTS="${tmpdir}/ATM_2D_weights.nc"
 echo "Weights will be saved to: ${ATM_2D_WGHTS}"
 cdo -O -P ${PROCS} -gencon,r180x91 -selvar,t_s "${TAS_FILES[0]}" "${ATM_2D_WGHTS}"
 
-# Define the function to process individual atm_2d_files
+export OCE_2D_WGHTS="${tmpdir}/OCE_2D_weights.nc"
+echo "Standard weights will be saved to: ${OCE_2D_WGHTS}"
+cdo -O -P ${PROCS} -gencon,r180x91 -setctomiss,0 -selvar,to "${MLOTST_FILES[0]}" "${OCE_2D_WGHTS}"
+
+# SI_WGHTS are used for sea ice and mixed layer depth.
+export SI_WGHTS="${tmpdir}/SI_weights.nc"
+echo "Sea ice weights will be saved to: ${SI_WGHTS}"
+cdo -O -P ${PROCS} -gencon,r180x91 -selvar,conc "${SICONC_FILES[0]}" "${SI_WGHTS}"
+
+export ZOS_WGHTS="${tmpdir}/ZOS_weights.nc"
+echo "ssh weights will be saved to: ${ZOS_WGHTS}"
+cdo -O -P ${PROCS} -gencon,r180x91 -setctomiss,0 -selvar,ssh "${ZOS_FILES[0]}" "${ZOS_WGHTS}"
+
+export OCE_ML_WGHTS="${tmpdir}/ML_weights.nc"
+echo "Weights will be saved to: ${OCE_ML_WGHTS}"
+cdo -P ${PROCS} -gencon,r180x91 -intlevel,10,100,1000,4000 -setctomiss,0 -selvar,to "${TO_FILES[0]}" "${OCE_ML_WGHTS}"
+
+
+echo "##################################\n"
+echo "# Defining processing functions  #\n"
+echo "##################################\n"
+
+# Define the regridding functions for each variable
 tas_processing() {
     in_file=$1
     filename=$(basename "${in_file}")
@@ -198,6 +221,7 @@ tas_processing() {
     fi
 }
 
+
 clt_processing() {
     in_file=$1
     filename=$(basename "${in_file}")
@@ -213,6 +237,7 @@ clt_processing() {
         echo "  skipping remapping"
     fi
 }
+
 
 pr_processing() {
     in_file=$1
@@ -232,6 +257,7 @@ pr_processing() {
     fi
 }
 
+
 rlut_processing() {
     in_file=$1
     filename=$(basename "${in_file}")
@@ -244,11 +270,12 @@ rlut_processing() {
     if [ ! -e "${out_file}" ];
     then
         echo "Remapped output will be saved to: ${out_file}"
-        cdo -P ${PROCS} -remap,r180x91,"${ATM_2D_WGHTS}" -chname,thb_t,rlut -selvar,thb_t "${in_file}" "${out_file}"
+        cdo -P ${PROCS} -mulc,-1 -remap,r180x91,"${ATM_2D_WGHTS}" -chname,thb_t,rlut -selvar,thb_t "${in_file}" "${out_file}"
     else
         echo "  skipping remapping"
     fi
 }
+
 
 uas_processing() {
     in_file=$1
@@ -267,6 +294,7 @@ uas_processing() {
     fi
 }
 
+
 vas_processing() {
     in_file=$1
     filename=$(basename "${in_file}")
@@ -283,41 +311,6 @@ vas_processing() {
     fi
 }
 
-export -f tas_processing
-export -f clt_processing
-export -f pr_processing
-export -f rlut_processing
-export -f uas_processing
-export -f vas_processing
-
-parallel --jobs $BATCH_SIZE "tas_processing {}" ::: "${TAS_FILES[@]}"
-parallel --jobs $BATCH_SIZE "clt_processing {}" ::: "${CLT_FILES[@]}"
-parallel --jobs $BATCH_SIZE "pr_processing {}" ::: "${PR_FILES[@]}"
-parallel --jobs $BATCH_SIZE "rlut_processing {}" ::: "${RLUT_FILES[@]}"
-parallel --jobs $BATCH_SIZE "uas_processing {}" ::: "${UAS_FILES[@]}"
-parallel --jobs $BATCH_SIZE "vas_processing {}" ::: "${VAS_FILES[@]}"
-
-echo ""
-echo "Merging remapped 2D atmospheric data into CMPITool formatted files"
-for var in tas pr clt;
-do
-    echo "Files being saved into: ${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_<<season>>.nc"
-    cdo -O -P ${PROCS} -splitseas -yseasmean -selyear,${first_year}/${last_year} -shifttime,-1seconds -mergetime "${tmpdir}/${var}_gr2_*.nc" "${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_"
-done
-
-for var in rlut;
-do
-    echo "Files being saved into: ${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_<<season>>.nc"
-    cdo -O -P ${PROCS} -splitseas -mulc,-1 -yseasmean -selyear,${first_year}/${last_year} -shifttime,-1seconds -mergetime "${tmpdir}/${var}_gr2_*.nc" "${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_"
-done
-
-
-
-
-
-printf "##################################\n"
-printf "# Operate on atm ML data         #\n"
-printf "##################################\n"
 
 ua300hPa_processing(){
     in_file=$1
@@ -338,6 +331,7 @@ ua300hPa_processing(){
         echo "  skipping remapping"
     fi
 }
+
 
 zg500hPa_processing(){
     in_file=$1
@@ -362,121 +356,6 @@ zg500hPa_processing(){
 
 
 }
-export -f ua300hPa_processing
-export -f zg500hPa_processing
-
-echo "Processing individual ML atmospheric variable files"
-parallel --jobs $BATCH_SIZE "ua300hPa_processing {}" ::: "${UA300HPA_FILES[@]}"
-parallel --jobs $BATCH_SIZE "zg500hPa_processing {}" ::: "${ZG500HPA_FILES[@]}"
-
-echo ""
-echo "Merging remapped ML atmospheric data into CMPITool formatted files"
-echo "Files being saved into: ${outdir}/ua_${model_name}_${first_year}01-${last_year}12_300hPa_<<season>>.nc"
-cdo -O -P ${PROCS} -splitseas -yseasmean -selyear,${first_year}/${last_year} -shifttime,-1seconds -mergetime "${tmpdir}/ua_gr2_*.nc" "${outdir}/ua_${model_name}_${first_year}01-${last_year}12_300hPa_"
-
-echo "Files being saved into: ${outdir}/zg_${model_name}_${first_year}01-${last_year}12_500hPa_<<season>>.nc"
-cdo -O -P ${PROCS} -splitseas -yseasmean -selyear,${first_year}/${last_year} -shifttime,-1seconds -mergetime "${tmpdir}/zg_gr2_*.nc" "${outdir}/zg_${model_name}_${first_year}01-${last_year}12_500hPa_"
-
-for var in uas vas;
-do
-    echo "Files being saved into: ${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_<<season>>.nc"
-    cdo -O -P ${PROCS} -splitseas -yseasmean -selyear,${first_year}/${last_year} -shifttime,-1seconds -mergetime "${tmpdir}/${var}_gr2_*.nc" "${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_"
-done
-
-
-printf "##################################\n"
-printf "# Operate on oce ML data         #\n"
-printf "##################################\n"
-
-echo "Constructing interpolation weights for ML oceanic variables"
-export OCE_ML_WGHTS="${tmpdir}/ML_weights.nc"
-
-echo "Weights will be saved to: ${OCE_ML_WGHTS}"
-cdo -P ${PROCS} -gencon,r180x91 -intlevel,10,100,1000,4000 -setctomiss,0 -selvar,to "${TO_FILES[0]}" "${OCE_ML_WGHTS}"
-
-
-to_processing() {
-    in_file=$1
-    filename=$(basename "${in_file}")
-    echo ""
-    echo "Operating on ${filename}"
-
-    echo ""
-    echo "Remapping: thetao"
-    thetao_out="${tmpdir}/thetao_gr2_${filename}"
-    check_for_and_remove_incomplete_files "${thetao_out}"
-    if [ ! -e "${thetao_out}" ];
-    then
-        echo "Remapped output will be saved to: ${thetao_out}"
-        cdo -P ${PROCS} -remap,r180x91,"${OCE_ML_WGHTS}" -intlevel,10,100,1000,4000 -setctomiss,0 -chname,to,thetao -selvar,to "${in_file}" "${thetao_out}"
-    else
-        echo "  skipping remapping"
-    fi
-}
-
-so_processing() {
-    in_file=$1
-    filename=$(basename "${in_file}")
-    echo ""
-    echo "Operating on ${filename}"
-
-    echo ""
-    echo "Remapping: so"
-    so_out="${tmpdir}/so_gr2_${filename}"
-    check_for_and_remove_incomplete_files "${so_out}"
-    if [ ! -e "${so_out}" ];
-    then
-        echo "Remapped output will be saved to: ${so_out}"
-        cdo -P ${PROCS} -remap,r180x91,"${OCE_ML_WGHTS}" -intlevel,10,100,1000,4000 -setctomiss,0 -selvar,so "${in_file}" "${so_out}"
-    else
-        echo "  skipping remapping"
-    fi
-
-}
-
-echo "Processing individual ML oceanic variable files"
-export -f to_processing
-export -f so_processing
-parallel --jobs $BATCH_SIZE "to_processing {}" ::: "${TO_FILES[@]}"
-parallel --jobs $BATCH_SIZE "so_processing {}" ::: "${SO_FILES[@]}"
-
-echo ""
-echo "Merging remapped ML oceanic data into CMPITool formatted files"
-for var in thetao so;
-do
-    cdo -O -P ${PROCS} -mergetime "${tmpdir}/${var}_gr2_*.nc" "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12.nc"
-    cdo -O -P ${PROCS} -splitlevel "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12.nc" "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_"
-    mv "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_000010.nc" "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_10m.nc"
-    mv "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_000100.nc" "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_100m.nc"
-    mv "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_001000.nc" "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_1000m.nc"
-    mv "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_004000.nc" "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_4000m.nc"
-
-    for level in 10 100 1000 4000;
-    do
-        echo "Files being saved into: ${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_${level}m_<<season>>.nc"
-        cdo -O -P ${PROCS} -splitseas -yseasmean -selyear,${first_year}/${last_year} -shifttime,-1seconds "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_${level}m.nc" "${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_${level}m_"
-    done
-done
-
-
-printf "##################################\n"
-printf "# Operate on oce 2D data         #\n"
-printf "##################################\n"
-
-echo "Constructing interpolation weights for 2D oceanic variables"
-
-export OCE_2D_WGHTS="${tmpdir}/OCE_2D_weights.nc"
-echo "Standard weights will be saved to: ${OCE_2D_WGHTS}"
-cdo -O -P ${PROCS} -gencon,r180x91 -setctomiss,0 -selvar,to "${MLOTST_FILES[0]}" "${OCE_2D_WGHTS}"
-
-# SI_WGHTS are used for sea ice and mixed layer depth.
-export SI_WGHTS="${tmpdir}/SI_weights.nc"
-echo "Sea ice weights will be saved to: ${SI_WGHTS}"
-cdo -O -P ${PROCS} -gencon,r180x91 -selvar,conc "${SICONC_FILES[0]}" "${SI_WGHTS}"
-
-export ZOS_WGHTS="${tmpdir}/ZOS_weights.nc"
-echo "ssh weights will be saved to: ${ZOS_WGHTS}"
-cdo -O -P ${PROCS} -gencon,r180x91 -setctomiss,0 -selvar,ssh "${ZOS_FILES[0]}" "${ZOS_WGHTS}"
 
 
 siconc_processing() {
@@ -498,6 +377,7 @@ siconc_processing() {
     fi
 }
 
+
 mlotst_processing() {
     in_file=$1
     filename=$(basename "${in_file}")
@@ -516,6 +396,7 @@ mlotst_processing() {
         echo "  skipping remapping"
     fi
 }
+
 
 tos_processing() {
     in_file=$1
@@ -536,6 +417,7 @@ tos_processing() {
     fi
 }
 
+
 zos_processing() {
     in_file=$1
     filename=$(basename "${in_file}")
@@ -555,13 +437,114 @@ zos_processing() {
     fi
 }
 
-export -f siconc_processing mlotst_processing tos_processing zos_processing
-echo "Processing individual 2D oceanic variable files"
+
+to_processing() {
+    in_file=$1
+    filename=$(basename "${in_file}")
+    echo ""
+    echo "Operating on ${filename}"
+
+    echo ""
+    echo "Remapping: thetao"
+    thetao_out="${tmpdir}/thetao_gr2_${filename}"
+    check_for_and_remove_incomplete_files "${thetao_out}"
+    if [ ! -e "${thetao_out}" ];
+    then
+        echo "Remapped output will be saved to: ${thetao_out}"
+        cdo -P ${PROCS} -remap,r180x91,"${OCE_ML_WGHTS}" -intlevel,10,100,1000,4000 -setctomiss,0 -chname,to,thetao -selvar,to "${in_file}" "${thetao_out}"
+    else
+        echo "  skipping remapping"
+    fi
+}
+
+
+so_processing() {
+    in_file=$1
+    filename=$(basename "${in_file}")
+    echo ""
+    echo "Operating on ${filename}"
+
+    echo ""
+    echo "Remapping: so"
+    so_out="${tmpdir}/so_gr2_${filename}"
+    check_for_and_remove_incomplete_files "${so_out}"
+    if [ ! -e "${so_out}" ];
+    then
+        echo "Remapped output will be saved to: ${so_out}"
+        cdo -P ${PROCS} -remap,r180x91,"${OCE_ML_WGHTS}" -intlevel,10,100,1000,4000 -setctomiss,0 -selvar,so "${in_file}" "${so_out}"
+    else
+        echo "  skipping remapping"
+    fi
+
+}
+
+
+# Export the functions just defined
+export -f tas_processing
+export -f clt_processing
+export -f pr_processing
+export -f rlut_processing
+export -f uas_processing
+export -f vas_processing
+export -f ua300hPa_processing
+export -f zg500hPa_processing
+export -f siconc_processing
+export -f mlotst_processing
+export -f tos_processing
+export -f zos_processing
+export -f to_processing
+export -f so_processing
+
+
+echo "##################################\n"
+echo "# Executing processing functions #\n"
+echo "##################################\n"
+# Use parallel to exexute the initial regridding.
+parallel --jobs $BATCH_SIZE "tas_processing {}" ::: "${TAS_FILES[@]}"
+parallel --jobs $BATCH_SIZE "clt_processing {}" ::: "${CLT_FILES[@]}"
+parallel --jobs $BATCH_SIZE "pr_processing {}" ::: "${PR_FILES[@]}"
+parallel --jobs $BATCH_SIZE "rlut_processing {}" ::: "${RLUT_FILES[@]}"
+parallel --jobs $BATCH_SIZE "uas_processing {}" ::: "${UAS_FILES[@]}"
+parallel --jobs $BATCH_SIZE "vas_processing {}" ::: "${VAS_FILES[@]}"
+
+parallel --jobs $BATCH_SIZE "ua300hPa_processing {}" ::: "${UA300HPA_FILES[@]}"
+parallel --jobs $BATCH_SIZE "zg500hPa_processing {}" ::: "${ZG500HPA_FILES[@]}"
+
 parallel --jobs $BATCH_SIZE "siconc_processing {}" ::: "${SICONC_FILES[@]}"
 parallel --jobs $BATCH_SIZE "mlotst_processing {}" ::: "${MLOTST_FILES[@]}"
 parallel --jobs $BATCH_SIZE "tos_processing {}" ::: "${TOS_FILES[@]}"
 parallel --jobs $BATCH_SIZE "zos_processing {}" ::: "${ZOS_FILES[@]}"
 
+parallel --jobs $BATCH_SIZE "to_processing {}" ::: "${TO_FILES[@]}"
+parallel --jobs $BATCH_SIZE "so_processing {}" ::: "${SO_FILES[@]}"
+
+
+echo "##################################\n"
+echo "# Merging files                  #\n"
+echo "##################################\n"
+# Use CDO to merge and process the remapped files into CMPITool formatted outputs.
+# ATM 2D
+echo ""
+echo "Merging remapped ML atmospheric data into CMPITool formatted files"
+for var in tas pr clt rlut uas vas;
+do
+    echo "Files being saved into: ${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_<<season>>.nc"
+    cdo -O -P ${PROCS} -splitseas -yseasmean -selyear,${first_year}/${last_year} -shifttime,-1seconds -mergetime "${tmpdir}/${var}_gr2_*.nc" "${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_"
+
+done
+
+
+# ATM ML
+# ua at 300 hPa
+echo "Files being saved into: ${outdir}/ua_${model_name}_${first_year}01-${last_year}12_300hPa_<<season>>.nc"
+cdo -O -P ${PROCS} -splitseas -yseasmean -selyear,${first_year}/${last_year} -shifttime,-1seconds -mergetime "${tmpdir}/ua_gr2_*.nc" "${outdir}/ua_${model_name}_${first_year}01-${last_year}12_300hPa_"
+
+# zg at 500 hPa
+echo "Files being saved into: ${outdir}/zg_${model_name}_${first_year}01-${last_year}12_500hPa_<<season>>.nc"
+cdo -O -P ${PROCS} -splitseas -yseasmean -selyear,${first_year}/${last_year} -shifttime,-1seconds -mergetime "${tmpdir}/zg_gr2_*.nc" "${outdir}/zg_${model_name}_${first_year}01-${last_year}12_500hPa_"
+
+
+# OCE 2D
 echo ""
 echo "Merging remapped 2D oceanic data into CMPITool formatted files"
 for var in siconc mlotst;
@@ -576,6 +559,27 @@ do
     echo "Files being saved into: ${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_<<season>>.nc"
     cdo -O -P ${PROCS} -splitseas -yseasstd -selyear,${first_year}/${last_year} -shifttime,-1seconds -mergetime "${tmpdir}/${var}_gr2_*.nc" "${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_surface_"
 done
+
+
+# OCE ML
+echo ""
+echo "Merging remapped ML oceanic data into CMPITool formatted files"
+for var in thetao so;
+do
+    cdo -O -P ${PROCS} -mergetime "${tmpdir}/${var}_gr2_*.nc" "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12.nc"
+    cdo -O -P ${PROCS} -splitlevel "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12.nc" "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_"
+    mv "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_000010.nc" "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_10m.nc"
+    mv "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_000100.nc" "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_100m.nc"
+    mv "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_001000.nc" "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_1000m.nc"
+    mv "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_004000.nc" "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_4000m.nc"
+
+    for level in 10 100 1000 4000;
+    do
+        echo "Files being saved into: ${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_${level}m_<<season>>.nc"
+        cdo -O -P ${PROCS} -splitseas -yseasmean -selyear,${first_year}/${last_year} -shifttime,-1seconds "${tmpdir}/${var}_${model_name}_${first_year}01-${last_year}12_${level}m.nc" "${outdir}/${var}_${model_name}_${first_year}01-${last_year}12_${level}m_"
+    done
+done
+
 
 echo ""
 echo "Processing complete"
